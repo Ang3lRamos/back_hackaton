@@ -1,7 +1,6 @@
 const express = require('express');
 const Reserva = require('../models/Reserva');
-const auth = require('../middleware/auth');  // Middleware para autenticación
-
+const auth = require('../middleware/auth');
 const router = express.Router();
 
 // Crear nueva reserva
@@ -29,24 +28,55 @@ router.get('/', auth, async (req, res) => {
     }
 });
 
-// Aprobar o desaprobar una reserva
+// Obtener todas las reservas aceptadas
+router.get('/accepted', auth, async (req, res) => {
+    try {
+        const reservasAceptadas = await Reserva.find({ approved: true });
+        res.json(reservasAceptadas);
+    } catch (err) {
+        console.error('Error al obtener las reservas aceptadas:', err);
+        res.status(500).json({ error: 'Error en el servidor' });
+    }
+});
+
+// Aprobar o rechazar una reserva
 router.put('/:id', auth, async (req, res) => {
     try {
         const reserva = await Reserva.findById(req.params.id);
         if (!reserva) return res.status(404).json({ error: 'Reserva no encontrada' });
 
-        // Asegúrate de recibir correctamente el valor de `approved`
-        if (typeof req.body.approved !== 'boolean') {
-            return res.status(400).json({ error: 'Debe proporcionar un valor booleano para `approved`' });
+        if (req.body.rejected) {
+            await Reserva.findByIdAndDelete(req.params.id);
+            return res.status(200).json({ message: 'Reserva rechazada y eliminada' });
         }
 
-        reserva.approved = req.body.approved;
+        if (req.body.approved !== undefined) {
+            reserva.approved = req.body.approved;
+            reserva.rejected = false;
+        }
+
         await reserva.save();
         res.json(reserva);
     } catch (err) {
-        console.error('Error en la actualización de reserva:', err);  // Log para depuración
+        console.error('Error en la actualización de reserva:', err);
         res.status(500).json({ error: 'Error en el servidor' });
     }
 });
+
+// Eliminar una reserva por ID
+router.delete('/:id', auth, async (req, res) => {
+    try {
+        const reserva = await Reserva.findByIdAndDelete(req.params.id);
+        if (!reserva) {
+            return res.status(404).json({ message: 'Reserva no encontrada' });
+        }
+        res.status(200).json({ message: 'Reserva eliminada con éxito' });
+    } catch (error) {
+        console.error('Error eliminando la reserva:', error);
+        res.status(500).json({ error: 'Error eliminando la reserva' });
+    }
+});
+
+
 
 module.exports = router;

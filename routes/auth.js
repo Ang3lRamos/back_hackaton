@@ -26,7 +26,7 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// Ruta para registrar un nuevo administrador (opcional)
+// Ruta para registrar un nuevo administrador 
 router.post('/register', async (req, res) => {
   const { email, password } = req.body;
 
